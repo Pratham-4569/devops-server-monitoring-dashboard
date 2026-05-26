@@ -1,5 +1,6 @@
 # DevOps Server Monitoring Dashboard
 
+[![CI](https://github.com/your-username/devops-server-monitoring-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/devops-server-monitoring-dashboard/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=flat&logo=flask&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
