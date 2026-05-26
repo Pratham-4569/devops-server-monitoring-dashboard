@@ -329,12 +329,9 @@ Bullet points you can adapt (keep honest — describe what **you** built):
 
 **Pratham**
 
-- Portfolio / learning project — DevOps Server Monitoring Dashboard
-- GitHub: [@your-username](https://github.com/your-username)
-- LinkedIn: [your-profile](https://linkedin.com/in/your-profile)
+Computer Engineering / AI & DS student passionate about backend systems, DevOps, and infrastructure projects.
 
-Contributions and feedback are welcome. If you use this repo, a star helps — thanks.
-
+- GitHub: https://github.com/Pratham-4569
 ---
 
 ## License
