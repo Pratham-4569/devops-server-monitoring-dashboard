@@ -9,6 +9,7 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-in-production")
     FLASK_ENV = os.environ.get("FLASK_ENV", "production")
     FLASK_DEBUG = os.environ.get("FLASK_DEBUG", "0") == "1"
+    CORS_ENABLED = os.environ.get("CORS_ENABLED", "1") == "1"
 
     CPU_THRESHOLD = int(os.environ.get("CPU_THRESHOLD", "80"))
     RAM_THRESHOLD = int(os.environ.get("RAM_THRESHOLD", "85"))
