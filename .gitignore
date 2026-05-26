@@ -35,3 +35,5 @@ node_modules/
 
 # Docs assets (generated)
 docs/screenshot.png
+
+.cursor/
