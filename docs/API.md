@@ -108,6 +108,8 @@ Note: This endpoint still blocks for ~2 seconds total (CPU ~1s + network ~1s sam
 
 ### `GET /api/disk`
 
+Returns user-facing filesystems only. Docker bind-mounts (`/etc/resolv.conf`, etc.) and pseudo filesystems (`tmpfs`, `proc`, …) are filtered out. Root (`/`) is always included when readable.
+
 ```json
 {
   "status": "ok",

@@ -14,6 +14,41 @@ from app.exceptions import MetricsError
 # How long to wait between network counter samples when computing per-second rates.
 NETWORK_SAMPLE_SECONDS = 1.0
 
+# Pseudo filesystem types — not useful on a storage dashboard.
+_IGNORED_FSTYPES = frozenset(
+    {
+        "tmpfs",
+        "devtmpfs",
+        "proc",
+        "sysfs",
+        "devpts",
+        "squashfs",
+        "cgroup",
+        "cgroup2",
+        "mqueue",
+        "autofs",
+        "efivarfs",
+        "securityfs",
+        "pstore",
+        "bpf",
+        "tracefs",
+        "fusectl",
+        "hugetlbfs",
+    }
+)
+
+# Docker often bind-mounts these files into containers (not real disks).
+_IGNORED_MOUNTPOINTS = frozenset(
+    {
+        "/etc/resolv.conf",
+        "/etc/hostname",
+        "/etc/hosts",
+    }
+)
+
+# Kernel/virtual paths — never show in the UI.
+_IGNORED_MOUNT_PREFIXES = ("/proc", "/sys", "/dev", "/run")
+
 
 def get_cpu_percent() -> float:
     """
@@ -46,39 +81,95 @@ def get_memory() -> dict:
         raise MetricsError(f"Unable to read memory metrics: {exc}") from exc
 
 
+def _is_user_facing_mount(part) -> bool:
+    """
+    Return True only for partitions end users care about (real disks / root FS).
+
+    Filters Docker file bind-mounts (/etc/resolv.conf, etc.) and kernel pseudo mounts.
+    """
+    mountpoint = part.mountpoint
+    fstype = part.fstype or ""
+
+    if not fstype:
+        return False
+    if mountpoint in _IGNORED_MOUNTPOINTS:
+        return False
+    if any(mountpoint.startswith(prefix) for prefix in _IGNORED_MOUNT_PREFIXES):
+        return False
+    # Single-file bind mounts under /etc (e.g. /etc/resolv.conf)
+    if mountpoint.startswith("/etc/") and "." in mountpoint.rsplit("/", 1)[-1]:
+        return False
+
+    # Container root is often overlay on / — keep that one, skip other overlay mounts.
+    if fstype == "overlay":
+        return mountpoint == "/"
+
+    if fstype in _IGNORED_FSTYPES:
+        return False
+
+    # Typical block devices: /dev/sda1, /dev/nvme0n1p1, etc.
+    if part.device.startswith("/dev/"):
+        return True
+
+    # Fallback: always include root even if device name is opaque.
+    return mountpoint == "/"
+
+
+def _disk_entry_from_path(mountpoint: str, device: str, fstype: str) -> dict | None:
+    """Build one disk dict from a path, or None if usage cannot be read."""
+    try:
+        usage = psutil.disk_usage(mountpoint)
+    except (PermissionError, OSError):
+        return None
+
+    return {
+        "device": device,
+        "mountpoint": mountpoint,
+        "fstype": fstype,
+        "total_bytes": usage.total,
+        "used_bytes": usage.used,
+        "free_bytes": usage.free,
+        "percent": round(usage.percent, 2),
+    }
+
+
 def get_disk() -> list:
     """
-    Return usage for each mounted filesystem.
+    Return usage for user-facing filesystems only.
 
-    Some mount points (e.g. Docker internals) may deny access; those are skipped
-    instead of failing the whole request.
+    Docker containers expose many internal mounts; we filter those so the dashboard
+    shows root (/) and real block devices (e.g. /dev/sda1) when present.
     """
     disks = []
+    root_meta = {"device": "root", "fstype": "unknown"}
+
     try:
         partitions = psutil.disk_partitions(all=False)
     except Exception as exc:
         raise MetricsError(f"Unable to list disk partitions: {exc}") from exc
 
     for part in partitions:
-        # Skip pseudo filesystems with no type.
-        if not part.fstype:
-            continue
-        try:
-            usage = psutil.disk_usage(part.mountpoint)
-        except (PermissionError, OSError):
+        if part.mountpoint == "/":
+            root_meta = {"device": part.device, "fstype": part.fstype or "unknown"}
+        if not _is_user_facing_mount(part):
             continue
 
-        disks.append(
-            {
-                "device": part.device,
-                "mountpoint": part.mountpoint,
-                "fstype": part.fstype,
-                "total_bytes": usage.total,
-                "used_bytes": usage.used,
-                "free_bytes": usage.free,
-                "percent": round(usage.percent, 2),
-            }
+        entry = _disk_entry_from_path(part.mountpoint, part.device, part.fstype)
+        if entry:
+            disks.append(entry)
+
+    # If everything was filtered (unusual), still report root filesystem usage.
+    if not disks:
+        entry = _disk_entry_from_path(
+            "/",
+            root_meta["device"],
+            root_meta["fstype"],
         )
+        if entry:
+            disks.append(entry)
+
+    # Sort: root first, then by size (largest first) for stable dashboard display.
+    disks.sort(key=lambda d: (d["mountpoint"] != "/", -d["total_bytes"]))
 
     return disks
 

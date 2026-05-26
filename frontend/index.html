@@ -5,15 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DevOps Server Monitoring Dashboard</title>
     <link rel="stylesheet" href="/css/style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   </head>
   <body>
-    <header>
-      <h1>DevOps Server Monitoring Dashboard</h1>
+    <header class="header">
+      <div class="header__title">
+        <h1>Server Monitoring</h1>
+        <p class="header__subtitle">Live infrastructure metrics</p>
+      </div>
+      <div class="header__status">
+        <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+        <span class="status-label" id="status-label">Connecting…</span>
+        <time class="last-updated" id="last-updated">—</time>
+      </div>
     </header>
 
-    <main></main>
+    <div id="alert-banner" class="banner banner--alert hidden" role="status"></div>
+    <div id="error-banner" class="banner banner--error hidden" role="alert"></div>
+    <div id="loading-banner" class="banner banner--loading">
+      <span class="spinner" aria-hidden="true"></span>
+      Fetching metrics from <code>/api/metrics</code>…
+    </div>
 
-    <footer>
+    <main class="dashboard" id="dashboard" aria-busy="true">
+      <section class="card" aria-labelledby="cpu-heading">
+        <div class="card__header">
+          <h2 id="cpu-heading">CPU</h2>
+          <span class="badge" id="cpu-badge">—</span>
+        </div>
+        <p class="metric-readout" id="cpu-readout">—</p>
+        <div class="chart-container">
+          <canvas id="cpu-chart" aria-label="CPU usage over time"></canvas>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="memory-heading">
+        <div class="card__header">
+          <h2 id="memory-heading">Memory</h2>
+          <span class="badge" id="memory-badge">—</span>
+        </div>
+        <p class="metric-readout" id="memory-readout">—</p>
+        <div class="chart-container chart-container--compact">
+          <canvas id="memory-chart" aria-label="Memory usage"></canvas>
+        </div>
+      </section>
+
+      <section class="card card--wide" aria-labelledby="disk-heading">
+        <div class="card__header">
+          <h2 id="disk-heading">Disk</h2>
+          <span class="badge badge--muted" id="disk-badge">—</span>
+        </div>
+        <p class="metric-readout" id="disk-readout">—</p>
+        <div class="chart-container">
+          <canvas id="disk-chart" aria-label="Disk usage by mount point"></canvas>
+        </div>
+      </section>
+
+      <section class="card card--wide" aria-labelledby="network-heading">
+        <div class="card__header">
+          <h2 id="network-heading">Network</h2>
+          <span class="badge badge--muted" id="network-badge">Live</span>
+        </div>
+        <div class="network-stats">
+          <div class="network-stat">
+            <span class="network-stat__label">Upload</span>
+            <span class="network-stat__value" id="network-sent">—</span>
+          </div>
+          <div class="network-stat">
+            <span class="network-stat__label">Download</span>
+            <span class="network-stat__value" id="network-recv">—</span>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="network-chart" aria-label="Network throughput over time"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
       <p>Flask · Vanilla JS · Chart.js · Docker · Ansible</p>
     </footer>
 
