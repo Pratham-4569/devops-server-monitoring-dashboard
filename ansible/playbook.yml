@@ -1,0 +1,5 @@
+---
+- name: DevOps Server Monitoring Dashboard
+  hosts: monitoring
+  vars_files:
+    - vars/main.yml
